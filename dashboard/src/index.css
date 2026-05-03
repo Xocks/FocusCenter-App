@@ -1,0 +1,5 @@
+@import "tailwindcss"; /* 新版本只需要这一句话就够了！ */
+
+body {
+  background-color: #f8fafc; /* 我们要的高级灰蓝背景 */
+}
