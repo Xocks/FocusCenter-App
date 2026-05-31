@@ -2,43 +2,52 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { X, Timer, Zap, CheckCircle2 } from 'lucide-react'
 import { useData } from '../contexts/DataContext'
+import { getBeijingDateKey, nowIso } from '../utils/date'
+import { normalizeOneHabitForBeijingDay } from '../utils/habits'
 
 export default function LogModal({ task, onClose }) {
   const { habits, setHabits, timeLogs, setTimeLogs } = useData()
   
   const isHabit = task.type === 'routine'
+  const todayKey = getBeijingDateKey()
+  const safeTask = isHabit ? normalizeOneHabitForBeijingDay(task) : task
   const [duration, setDuration] = useState('')
-  const [amount, setAmount] = useState(isHabit ? (task.stepValue || 1) : 0)
+  const [amount, setAmount] = useState(isHabit ? (safeTask.stepValue || 1) : 0)
 
-  // 处理保存逻辑
   const handleSave = () => {
     const durNum = Number(duration) || 0
     const amtNum = Number(amount) || 0
+    const currentTask = isHabit ? normalizeOneHabitForBeijingDay(safeTask) : safeTask
 
-    // 只要有时间或进度产生，就生成一条流水账
     if (durNum > 0 || (isHabit && amtNum > 0)) {
       const newRecord = {
         id: Date.now().toString(),
-        taskId: task.id,
-        taskTitle: task.title,
-        mode: 'manual', 
-        durationSeconds: durNum * 60, 
-        progressAdded: isHabit ? amtNum : 0, 
-        unit: task.unit || '次', 
-        groupIds: task.groupIds || [],
-        // 🚀 核心升级：增加“标签快照”，永久烙印动作属性
-        tags: task.tags || [], 
-        completedAt: new Date().toISOString()
+        taskId: currentTask.id,
+        taskTitle: currentTask.title,
+        mode: 'manual',
+        durationSeconds: durNum * 60,
+        progressAdded: isHabit ? amtNum : 0,
+        unit: currentTask.unit || '次',
+        groupIds: currentTask.groupIds || [],
+        tags: currentTask.tags || [],
+        dateKey: todayKey,
+        completedAt: nowIso()
       }
       setTimeLogs([...timeLogs, newRecord])
     }
 
-    // 更新习惯的实际进度
     if (isHabit && amtNum > 0) {
       setHabits(habits.map(h => {
-        if (h.id === task.id) {
-          const newProgress = Math.max(0, (h.currentProgress || 0) + amtNum)
-          return { ...h, currentProgress: newProgress, completedToday: newProgress >= h.targetValue }
+        if (h.id === currentTask.id) {
+          const normalized = normalizeOneHabitForBeijingDay(h)
+          const newProgress = Math.max(0, Number(normalized.currentProgress || 0) + amtNum)
+          return {
+            ...normalized,
+            currentProgress: newProgress,
+            completedToday: newProgress >= Number(normalized.targetValue || 1),
+            progressDate: todayKey,
+            updatedAt: nowIso()
+          }
         }
         return h
       }))
@@ -61,8 +70,8 @@ export default function LogModal({ task, onClose }) {
 
         <div className="p-6 space-y-6">
           <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
-            <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">正在记录</span>
-            <span className="font-black text-slate-700 text-lg leading-tight">{task.title}</span>
+            <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">正在记录 · 北京时间 {todayKey}</span>
+            <span className="font-black text-slate-700 text-lg leading-tight">{currentTask.title}</span>
           </div>
 
           <div className="space-y-5">
@@ -91,7 +100,7 @@ export default function LogModal({ task, onClose }) {
                     value={amount} onChange={e => setAmount(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-xl font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                   />
-                  <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">{task.unit || '次'}</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">{currentTask.unit || '次'}</span>
                 </div>
               </div>
             )}
