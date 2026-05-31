@@ -4,12 +4,12 @@ import { Menu, Plus, Cloud, CloudOff, RefreshCw, AlertCircle, LayoutList, Folder
 import { useData } from './contexts/DataContext'
 
 import TodoView from './components/TodoView.jsx'
+import TodayDashboard from './components/TodayDashboard.jsx'
 import AddModal from './components/AddModal.jsx'
 import SettingsView from './components/SettingsView.jsx' 
 import StatsView from './components/StatsView.jsx' 
 import LogModal from './components/LogModal.jsx'
 import CalendarView from './components/CalendarView.jsx'
-// 🚀 引入日记/知识库视图
 import DiaryView from './components/DiaryView.jsx'
 
 export default function App() {
@@ -28,7 +28,7 @@ export default function App() {
   const androidEase = { type: 'tween', ease: [0.0, 0.0, 0.2, 1], duration: 0.3 }
 
   const tabs = [
-    { id: 'today', label: '待办', icon: CheckSquare },
+    { id: 'today', label: '今日', icon: CheckSquare },
     { id: 'stats', label: '追踪', icon: BarChart2 },
     { id: 'diary', label: '日记', icon: Book },
     { id: 'calendar', label: '日历', icon: CalendarIcon },
@@ -68,7 +68,8 @@ export default function App() {
               <Menu size={24} />
             </button>
             <h1 className="text-xl font-bold text-slate-800">
-              {currentRoute.path === 'today' && '今日任务'}
+              {currentRoute.path === 'today' && '今日中控'}
+              {currentRoute.path === 'tasks' && '完整任务'}
               {currentRoute.path === 'inbox' && '收集箱'}
               {currentRoute.path === 'group' && groups.find(g => g.id === currentRoute.params?.id)?.title}
               {currentRoute.path === 'stats' && '时间统计'}
@@ -103,19 +104,18 @@ export default function App() {
       )}
 
       <main className="flex-1 overflow-y-auto relative bg-slate-50">
-        {currentRoute.path === 'today' && <div className="p-6 pb-24"><TodoView onEdit={(item) => { setEditingItem(item); setIsAddModalOpen(true); }} onLog={(item) => setLoggingItem(item)} filterGroupId={null} /></div>}
+        {currentRoute.path === 'today' && <div className="p-6 pb-24"><TodayDashboard onEdit={(item) => { setEditingItem(item); setIsAddModalOpen(true); }} onLog={(item) => setLoggingItem(item)} onOpenTasks={() => handleNav('tasks')} /></div>}
+        {currentRoute.path === 'tasks' && <div className="p-6 pb-24"><TodoView onEdit={(item) => { setEditingItem(item); setIsAddModalOpen(true); }} onLog={(item) => setLoggingItem(item)} filterGroupId={null} /></div>}
         {currentRoute.path === 'inbox' && <div className="p-6 pb-24"><TodoView onEdit={(item) => { setEditingItem(item); setIsAddModalOpen(true); }} onLog={(item) => setLoggingItem(item)} filterGroupId="inbox" /></div>}
         {currentRoute.path === 'group' && <div className="p-6 pb-24"><TodoView onEdit={(item) => { setEditingItem(item); setIsAddModalOpen(true); }} onLog={(item) => setLoggingItem(item)} filterGroupId={currentRoute.params.id} /></div>}
         
         {currentRoute.path === 'settings' && <SettingsView onBack={() => handleNav('today')} />}
         {currentRoute.path === 'stats' && <StatsView />}
         {currentRoute.path === 'calendar' && <CalendarView />}
-        
-        {/* 🚀 挂载我们的数字花园阅读器 */}
         {currentRoute.path === 'diary' && <DiaryView />}
       </main>
 
-      {(currentRoute.path === 'today' || currentRoute.path === 'group' || currentRoute.path === 'inbox') && (
+      {(currentRoute.path === 'today' || currentRoute.path === 'tasks' || currentRoute.path === 'group' || currentRoute.path === 'inbox') && (
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingItem(null); setIsAddModalOpen(true); }} className="absolute bottom-24 right-6 w-14 h-14 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-600/30 z-20">
           <Plus size={28} />
         </motion.button>
@@ -148,7 +148,8 @@ export default function App() {
               
               <div className="p-4 flex-1 overflow-y-auto space-y-6">
                 <div className="space-y-1">
-                  <button onClick={() => handleNav('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-colors ${currentRoute.path === 'today' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}><LayoutList size={20} /> 今日任务</button>
+                  <button onClick={() => handleNav('today')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-colors ${currentRoute.path === 'today' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}><LayoutList size={20} /> 今日中控</button>
+                  <button onClick={() => handleNav('tasks')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-colors ${currentRoute.path === 'tasks' ? 'bg-blue-100 text-blue-700' : 'text-slate-600 hover:bg-slate-200'}`}><CheckSquare size={20} /> 完整任务</button>
                   <button onClick={() => handleNav('inbox')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-colors ${currentRoute.path === 'inbox' ? 'bg-slate-200 text-slate-800' : 'text-slate-600 hover:bg-slate-200'}`}><Inbox size={20} /> 收集箱 (未分组)</button>
                 </div>
                 <div>
