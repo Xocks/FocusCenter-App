@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, Zap, Repeat, Trash2, Pencil, Bell, Timer, PlusCircle, CalendarPlus, Square, Play } from 'lucide-react'
 import { useData } from '../contexts/DataContext'
+import { getBeijingDateKey, getLogDateKey, nowIso } from '../utils/date'
 
 const formatTimeSafe = (sec) => {
   if (!sec || sec <= 0) return null
@@ -11,9 +12,45 @@ const formatTimeSafe = (sec) => {
   return s > 0 ? `${m}分${s}秒` : `${m}分钟`
 }
 
+const dateTimeParts = (value) => {
+  if (!value) return null
+  const raw = String(value)
+  const localMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/)
+  if (localMatch) {
+    const [, year, month, day, hour, minute] = localMatch
+    return {
+      dateKey: `${year}-${month}-${day}`,
+      time: `${hour}:${minute}`,
+      dayTime: `${Number(month)}/${Number(day)} ${hour}:${minute}`,
+    }
+  }
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return null
+  return {
+    dateKey: getBeijingDateKey(date),
+    time: new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' }).format(date),
+    dayTime: new Intl.DateTimeFormat('zh-CN', { timeZone: 'Asia/Shanghai', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date),
+  }
+}
+
+const formatTaskSchedule = (task, todayKey) => {
+  const start = dateTimeParts(task.startAt)
+  const end = dateTimeParts(task.endAt || task.deadline)
+  if (start && end) {
+    if (start.dateKey === end.dateKey) {
+      const prefix = start.dateKey === todayKey ? '' : `${start.dayTime.split(' ')[0]} `
+      return `${prefix}${start.time}-${end.time}`
+    }
+    return `${start.dayTime} - ${end.dayTime}`
+  }
+  if (start) return `${start.dateKey === todayKey ? '' : `${start.dayTime.split(' ')[0]} `}${start.time} 开始`
+  if (end) return end.dateKey === todayKey ? `截止 ${end.time}` : `截止 ${end.dayTime}`
+  return ''
+}
+
 export default function TodoView({ onEdit, onLog, filterGroupId }) {
   const { habits, setHabits, onces, setOnces, timeLogs, setTimeLogs } = useData()
-  const todayStr = new Date().toLocaleDateString('en-CA') 
+  const todayStr = getBeijingDateKey()
 
   const [runningTimers, setRunningTimers] = useState({})
   const [now, setNow] = useState(Date.now())
@@ -26,13 +63,20 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
     return () => clearInterval(interval)
   }, [runningTimers])
 
-  const softDeleteHabit = (id) => setHabits(habits.map(h => h.id === id ? { ...h, isDeleted: true, deletedAt: new Date().toISOString() } : h))
-  const softDeleteTodo = (id) => setOnces(onces.map(t => t.id === id ? { ...t, isDeleted: true, deletedAt: new Date().toISOString() } : t))
+  const softDeleteHabit = (id) => {
+    const timestamp = nowIso()
+    setHabits(habits.map(h => h.id === id ? { ...h, isDeleted: true, deletedAt: timestamp, updatedAt: timestamp } : h))
+  }
+  const softDeleteTodo = (id) => {
+    const timestamp = nowIso()
+    setOnces(onces.map(t => t.id === id ? { ...t, isDeleted: true, deletedAt: timestamp, updatedAt: timestamp } : t))
+  }
   const toggleTodo = (id) => setOnces(onces.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
   
   const handleAssignToToday = (item, type) => {
-    if (type === 'routine') setHabits(habits.map(h => h.id === item.id ? { ...h, targetDate: todayStr } : h))
-    else setOnces(onces.map(o => o.id === item.id ? { ...o, targetDate: todayStr } : o))
+    const timestamp = nowIso()
+    if (type === 'routine') setHabits(habits.map(h => h.id === item.id ? { ...h, targetDate: todayStr, updatedAt: timestamp } : h))
+    else setOnces(onces.map(o => o.id === item.id ? { ...o, targetDate: todayStr, updatedAt: timestamp } : o))
   }
 
   // 🚀 核心计时器逻辑也写入 groupIds
@@ -47,9 +91,13 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
           taskId: task.id,
           taskTitle: task.title,
           mode: 'stopwatch',
-          durationSeconds: elapsedSeconds, 
+          durationSeconds: elapsedSeconds,
+          progressAdded: 0,
+          unit: task.unit || '',
           groupIds: task.groupIds || [], // 🚀 永久烙印组别
-          completedAt: new Date().toISOString()
+          tags: task.tags || [],
+          dateKey: todayStr,
+          completedAt: nowIso()
         }
         setTimeLogs([...timeLogs, newRecord])
       }
@@ -79,7 +127,10 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
   let activeHabits = []
   let activeTodos = []
 
-  if (filterGroupId === null) {
+  if (filterGroupId === 'all') {
+    activeHabits = habits.filter(h => !h.isDeleted)
+    activeTodos = onces.filter(o => !o.isDeleted)
+  } else if (filterGroupId === null) {
     activeHabits = habits.filter(h => !h.isDeleted && (h.recurrence && h.recurrence !== 'none' || h.targetDate === todayStr))
     activeTodos = onces.filter(o => !o.isDeleted && (o.recurrence && o.recurrence !== 'none' || o.targetDate === todayStr))
   } else if (filterGroupId === 'inbox') {
@@ -99,8 +150,8 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
 
   // 🚀 计算本组今日耗时
   let groupTodaySeconds = 0
-  if (filterGroupId !== null && filterGroupId !== 'inbox') {
-    const todayLogs = timeLogs.filter(log => new Date(log.completedAt).toDateString() === new Date().toDateString())
+  if (filterGroupId !== null && filterGroupId !== 'inbox' && filterGroupId !== 'all') {
+    const todayLogs = timeLogs.filter(log => getLogDateKey(log) === todayStr)
     todayLogs.forEach(log => {
       // 兼容旧数据查任务，新数据查流水账烙印
       let logsGroups = log.groupIds
@@ -118,18 +169,19 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
     <div className="space-y-8 pb-10">
       
       <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-3 relative overflow-hidden">
+        {filterGroupId === 'all' && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">全部项目</div>}
         {filterGroupId === null && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">今日执行中</div>}
         {filterGroupId === 'inbox' && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">未分类清单</div>}
         
         <div className="flex justify-between items-end">
           <div>
             <h2 className="text-xl font-black text-slate-800">
-              {filterGroupId === null ? '今日待办' : filterGroupId === 'inbox' ? '收集箱' : '组内总库'}
+              {filterGroupId === 'all' ? '所有任务' : filterGroupId === null ? '今日待办' : filterGroupId === 'inbox' ? '收集箱' : '组内总库'}
             </h2>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs font-medium text-slate-400">当前视图综合得分</span>
               {/* 🚀 组内今日耗时展示 */}
-              {filterGroupId !== null && filterGroupId !== 'inbox' && groupTodaySeconds > 0 && (
+              {filterGroupId !== null && filterGroupId !== 'inbox' && filterGroupId !== 'all' && groupTodaySeconds > 0 && (
                 <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                   <Timer size={10}/> 今日耗时: {formatTimeSafe(groupTodaySeconds)}
                 </span>
@@ -222,7 +274,7 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
                         )}
                         {todo.reminderEnabled && <Bell size={10} className="text-orange-400" />}
                         {todo.recurrence && todo.recurrence !== 'none' && <span className="flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded text-uppercase"><Repeat size={10}/> {todo.recurrence === 'daily' ? '每天' : '每周'}</span>}
-                        {todo.deadline && <span className="text-xs text-slate-400 font-medium">{new Date(todo.deadline).toLocaleString([], {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>}
+                        {formatTaskSchedule(todo, todayStr) && <span className="text-xs text-slate-400 font-medium">{formatTaskSchedule(todo, todayStr)}</span>}
                         {todo.tags?.map(tag => <span key={tag} className="text-[10px] font-bold text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded">{tag}</span>)}
                       </div>
                     </div>

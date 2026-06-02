@@ -4,11 +4,23 @@ import { motion, AnimatePresence } from 'framer-motion'
 // 🚀 确保图标库导入完整无缺
 import { Clock, Zap, Target, PieChart as PieChartIcon, Tag as TagIcon, ListTodo, CheckCircle2, Trash2, BarChart2 } from 'lucide-react'
 import { useData } from '../contexts/DataContext'
+import { getBeijingDateKey, getLogDateKey } from '../utils/date'
 // 导入图表库
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 
 // 图表主题色系
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#64748b']
+
+const addDaysToDateKey = (dateKey, amount) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day + amount))
+  return date.toISOString().slice(0, 10)
+}
+
+const getDateKeyWeekday = (dateKey) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay()
+}
 
 // ==================== 独立抽离的单条流水账组件 (防止解析器崩溃) ====================
 const RecordItem = ({ record, onUndo }) => {
@@ -87,21 +99,15 @@ export default function StatsView() {
   const [timeRange, setTimeRange] = useState('today') 
 
   // 日期范围计算
-  const getStartOfDay = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  const getStartOfWeek = (d = new Date()) => {
-    const date = new Date(d)
-    const day = date.getDay() || 7
-    if (day !== 1) date.setHours(-24 * (day - 1))
-    return getStartOfDay(date)
+  const todayKey = getBeijingDateKey()
+  let rangeStartKey = todayKey
+  if (timeRange === 'week') {
+    const day = getDateKeyWeekday(todayKey) || 7
+    rangeStartKey = addDaysToDateKey(todayKey, -(day - 1))
   }
-  const getStartOfMonth = (d = new Date()) => new Date(d.getFullYear(), d.getMonth(), 1)
+  if (timeRange === 'month') rangeStartKey = `${todayKey.slice(0, 8)}01`
 
-  const now = new Date()
-  let rangeStart = getStartOfDay(now)
-  if (timeRange === 'week') rangeStart = getStartOfWeek(now)
-  if (timeRange === 'month') rangeStart = getStartOfMonth(now)
-
-  const filteredRecords = timeLogs.filter(p => new Date(p.completedAt).getTime() >= rangeStart.getTime())
+  const filteredRecords = timeLogs.filter(log => getLogDateKey(log) >= rangeStartKey)
 
   // ==================== 【数据计算：时间透视】 ====================
   const totalSeconds = filteredRecords.reduce((acc, curr) => acc + (curr.durationSeconds || 0), 0)
@@ -156,7 +162,11 @@ export default function StatsView() {
 
   // ==================== 【数据计算：习惯量化】 ====================
   const habitLogs = filteredRecords.filter(log => log.progressAdded > 0)
-  const uniqueHabitTitles = Array.from(new Set(habitLogs.map(l => l.taskTitle)))
+  const activeHabitTitles = habits
+    .filter(habit => !habit.isDeleted && habit.type === 'routine')
+    .map(habit => habit.title)
+    .filter(Boolean)
+  const uniqueHabitTitles = Array.from(new Set([...activeHabitTitles, ...habitLogs.map(l => l.taskTitle).filter(Boolean)]))
   
   const [selectedHabit, setSelectedHabit] = useState('')
   if (!selectedHabit && uniqueHabitTitles.length > 0) {
@@ -167,20 +177,25 @@ export default function StatsView() {
 
   const dailyDataMap = {}
   let selectedHabitTotal = 0
-  let selectedHabitUnit = '次'
+  const selectedHabitObj = habits.find(habit => habit.title === selectedHabit && !habit.isDeleted && habit.type === 'routine')
+  let selectedHabitUnit = selectedHabitObj?.unit || '次'
 
   if (selectedHabit) {
     habitLogs.filter(l => l.taskTitle === selectedHabit).forEach(log => {
-      const dateObj = new Date(log.completedAt)
-      const dayStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`
+      const dateKey = getLogDateKey(log)
+      const dayStr = dateKey.slice(5).replace('-', '/')
       
       dailyDataMap[dayStr] = (dailyDataMap[dayStr] || 0) + log.progressAdded
       selectedHabitTotal += log.progressAdded
-      selectedHabitUnit = log.unit || '次'
+      selectedHabitUnit = log.unit || selectedHabitUnit
     })
   }
 
-  const barChartData = Object.keys(dailyDataMap).map(day => ({ date: day, value: dailyDataMap[day] }))
+  const barChartData = []
+  for (let dateKey = rangeStartKey; dateKey <= todayKey; dateKey = addDaysToDateKey(dateKey, 1)) {
+    const day = dateKey.slice(5).replace('-', '/')
+    barChartData.push({ date: day, value: dailyDataMap[day] || 0 })
+  }
 
   // 撤销逻辑
   const handleUndo = (record) => {

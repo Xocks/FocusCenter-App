@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { X, Target, Repeat, Calendar, Bell, Folder, Tag as TagIcon, Plus, Check } from 'lucide-react'
+import { X, Target, Repeat, Calendar, Bell, Folder, Tag as TagIcon, Plus, Check, Palette } from 'lucide-react'
 import { useData } from '../contexts/DataContext'
+import { getBeijingDateKey, nowIso } from '../utils/date'
+import { VISUAL_TEMPLATE_OPTIONS } from '../utils/visualPresets'
 
 export default function AddModal({ onClose, initialData = null }) {
   const { habits, setHabits, onces, setOnces, groups, setGroups, allTags, setAllTags } = useData()
   
   const isEditing = !!initialData 
-  const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD
+  const todayStr = getBeijingDateKey()
 
   const [tab, setTab] = useState('todo') 
   const [title, setTitle] = useState('')
@@ -25,8 +27,15 @@ export default function AddModal({ onClose, initialData = null }) {
   // 🚀 统一的循环与调度状态
   const [recurrence, setRecurrence] = useState('none') 
   const [deadline, setDeadline] = useState('')
+  const [startAt, setStartAt] = useState('')
+  const [endAt, setEndAt] = useState('')
   const [reminderEnabled, setReminderEnabled] = useState(false)
   const [addToToday, setAddToToday] = useState(false) // 是否立即加入今日待办
+  const [visualIcon, setVisualIcon] = useState('')
+  const [visualColor, setVisualColor] = useState('#2563eb')
+  const [visualTemplateId, setVisualTemplateId] = useState('')
+  const [visualImageUrl, setVisualImageUrl] = useState('')
+  const [visualImagePrompt, setVisualImagePrompt] = useState('')
 
   useEffect(() => {
     if (initialData) {
@@ -37,6 +46,11 @@ export default function AddModal({ onClose, initialData = null }) {
       setRecurrence(initialData.recurrence || 'none')
       setAddToToday(initialData.targetDate === todayStr)
       setGroupIds(initialData.groupIds || (initialData.groupId ? [initialData.groupId] : []))
+      setVisualIcon(initialData.visual?.icon || '')
+      setVisualColor(initialData.visual?.color || '#2563eb')
+      setVisualTemplateId(initialData.visual?.templateId || '')
+      setVisualImageUrl(initialData.visual?.imageUrl || '')
+      setVisualImagePrompt(initialData.visual?.imagePrompt || '')
 
       if (initialData.type === 'routine') {
         setTargetValue(initialData.targetValue || '')
@@ -44,6 +58,8 @@ export default function AddModal({ onClose, initialData = null }) {
         setUnit(initialData.unit || '')
       } else {
         setDeadline(initialData.deadline || '')
+        setStartAt(initialData.startAt || '')
+        setEndAt(initialData.endAt || initialData.deadline || '')
       }
     }
   }, [initialData])
@@ -82,6 +98,15 @@ export default function AddModal({ onClose, initialData = null }) {
   const handleSubmit = () => {
     if (!title.trim() || groupIds.length === 0) return // 🛡️ 拦截：必须有标题且必须分组
 
+    const timestamp = nowIso()
+    const scheduledDate = tab === 'todo' ? String(startAt || endAt || '').slice(0, 10) : ''
+    const visual = {
+      ...(visualIcon.trim() && { icon: visualIcon.trim() }),
+      ...(visualColor && { color: visualColor }),
+      ...(visualTemplateId && { templateId: visualTemplateId }),
+      ...(visualImageUrl.trim() && { imageUrl: visualImageUrl.trim() }),
+      ...(visualImagePrompt.trim() && { imagePrompt: visualImagePrompt.trim() }),
+    }
     const baseData = {
       id: initialData ? initialData.id : Date.now().toString(),
       title: title.trim(),
@@ -89,9 +114,11 @@ export default function AddModal({ onClose, initialData = null }) {
       reminderEnabled,
       groupIds: groupIds, 
       recurrence: recurrence, // 习惯和待办都有循环属性
-      targetDate: recurrence === 'none' && addToToday ? todayStr : (initialData ? initialData.targetDate : null), // 记录调度日期
-      createdAt: initialData ? initialData.createdAt : new Date().toISOString(),
-      isDeleted: false 
+      targetDate: recurrence === 'none' ? (scheduledDate || (addToToday ? todayStr : (initialData ? initialData.targetDate : null))) : (initialData ? initialData.targetDate : null), // 记录调度日期
+      createdAt: initialData ? initialData.createdAt : timestamp,
+      updatedAt: timestamp,
+      isDeleted: false,
+      ...(Object.keys(visual).length > 0 && { visual })
     }
 
     if (tab === 'habit') {
@@ -101,8 +128,9 @@ export default function AddModal({ onClose, initialData = null }) {
         targetValue: Number(targetValue) || 1,
         stepValue: Number(stepValue) || 1,
         unit: unit || '次',
-        currentProgress: initialData ? initialData.currentProgress : 0,
-        completedToday: initialData ? initialData.completedToday : false
+        currentProgress: initialData ? (initialData.currentProgress ?? 0) : 0,
+        completedToday: initialData ? Boolean(initialData.completedToday) : false,
+        progressDate: initialData ? (initialData.progressDate || todayStr) : todayStr
       }
       if (isEditing) setHabits(habits.map(h => h.id === newHabit.id ? newHabit : h))
       else setHabits([...habits, newHabit])
@@ -111,7 +139,9 @@ export default function AddModal({ onClose, initialData = null }) {
       const newTodo = {
         ...baseData,
         type: 'task',
-        deadline,
+        startAt: startAt || null,
+        endAt: endAt || null,
+        deadline: endAt || deadline || null,
         completed: initialData ? initialData.completed : false
       }
       if (isEditing) setOnces(onces.map(o => o.id === newTodo.id ? newTodo : o))
@@ -125,7 +155,7 @@ export default function AddModal({ onClose, initialData = null }) {
   const isFormValid = title.trim() !== '' && groupIds.length > 0
 
   return (
-    <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+    <div className="absolute inset-0 z-[90] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
       <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         <div className="flex bg-slate-100 p-2 relative shrink-0">
@@ -210,8 +240,17 @@ export default function AddModal({ onClose, initialData = null }) {
 
             {tab === 'todo' && (
               <>
-                <label className="text-xs font-bold text-slate-400 flex items-center gap-2 mt-4"><Calendar size={14}/> 截止时间</label>
-                <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-600" />
+                <label className="text-xs font-bold text-slate-400 flex items-center gap-2 mt-4"><Calendar size={14}/> 时间段</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400">开始</span>
+                    <input type="datetime-local" value={startAt} onChange={e => setStartAt(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-600" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400">结束/截止</span>
+                    <input type="datetime-local" value={endAt} onChange={e => { setEndAt(e.target.value); setDeadline(e.target.value) }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-600" />
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -246,6 +285,64 @@ export default function AddModal({ onClose, initialData = null }) {
               <button onClick={handleAddTag} disabled={!newTagName.trim()} className="px-3 py-1.5 bg-blue-50 text-blue-600 text-sm font-bold rounded-full disabled:opacity-50">添加</button>
             </div>
           </div>
+
+          <details className="space-y-4 border-t border-slate-100 pt-6">
+            <summary className="flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-400">
+              <Palette size={14} /> 外观
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400">图标名</span>
+                  <input
+                    type="text"
+                    value={visualIcon}
+                    onChange={e => setVisualIcon(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[11px] font-bold text-slate-400">颜色</span>
+                  <input
+                    type="color"
+                    value={visualColor}
+                    onChange={e => setVisualColor(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-2 py-1"
+                  />
+                </label>
+              </div>
+              <label className="block space-y-1">
+                <span className="text-[11px] font-bold text-slate-400">模板</span>
+                <select
+                  value={visualTemplateId}
+                  onChange={e => setVisualTemplateId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-400"
+                >
+                  <option value="">继承分组/默认</option>
+                  {VISUAL_TEMPLATE_OPTIONS.map(option => (
+                    <option key={option.id} value={option.id}>{option.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[11px] font-bold text-slate-400">图片 URL</span>
+                <input
+                  type="url"
+                  value={visualImageUrl}
+                  onChange={e => setVisualImageUrl(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-[11px] font-bold text-slate-400">AI 图片提示词</span>
+                <textarea
+                  value={visualImagePrompt}
+                  onChange={e => setVisualImagePrompt(e.target.value)}
+                  className="h-20 w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                />
+              </label>
+            </div>
+          </details>
         </div>
 
         <div className="p-4 border-t border-slate-100 flex gap-3 shrink-0">

@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { fetchFile, saveFile, getGithubConfig } from '../githubService'
+import { getBeijingDateKey } from '../utils/date'
+import { normalizeHabitsForBeijingDay } from '../utils/habits'
+import { DEFAULT_UI_SETTINGS, normalizeUiSettings } from '../utils/uiSettings'
 
 const DataContext = createContext()
 
@@ -14,8 +17,8 @@ export function DataProvider({ children }) {
   
   // 🚀 V4 架构：引入 groups (任务组)
   const syncMetaRef = useRef({
-    shas: { habits: null, onces: null, tags: null, timeLogs: null, groups: null },
-    snapshots: { habits: '', onces: '', tags: '', timeLogs: '', groups: '' }
+    shas: { habits: null, onces: null, tags: null, timeLogs: null, groups: null, uiSettings: null },
+    snapshots: { habits: '', onces: '', tags: '', timeLogs: '', groups: '', uiSettings: '' }
   })
 
   const [habits, setHabits] = useState([])
@@ -23,6 +26,7 @@ export function DataProvider({ children }) {
   const [allTags, setAllTags] = useState(['高优', '学习', '生活', '健康'])
   const [timeLogs, setTimeLogs] = useState([])
   const [groups, setGroups] = useState([]) // 📁 任务组状态
+  const [uiSettings, setUiSettings] = useState(DEFAULT_UI_SETTINGS)
 
   const loadData = async () => {
     const config = getGithubConfig()
@@ -34,39 +38,44 @@ export function DataProvider({ children }) {
 
     setSyncStatus('loading')
     // 并发拉取 5 个文件
-    const [habitsRes, oncesRes, tagsRes, timeRes, groupsRes] = await Promise.all([
+    const [habitsRes, oncesRes, tagsRes, timeRes, groupsRes, uiSettingsRes] = await Promise.all([
       fetchFile('habits.json'),
       fetchFile('onces.json'),
       fetchFile('tags.json'),
       fetchFile('timeLogs.json'),
-      fetchFile('groups.json')
+      fetchFile('groups.json'),
+      fetchFile('uiSettings.json')
     ])
 
-    if (!habitsRes || !oncesRes || !tagsRes || !timeRes || !groupsRes) {
+    if (!habitsRes || !oncesRes || !tagsRes || !timeRes || !groupsRes || !uiSettingsRes) {
       setSyncStatus('error')
       setIsInitialLoaded(true)
       return
     }
 
     const loadedHabits = Array.isArray(habitsRes.content) ? habitsRes.content : []
+    const normalizedHabits = normalizeHabitsForBeijingDay(loadedHabits, { todayKey: getBeijingDateKey() }).habits
     const loadedOnces = Array.isArray(oncesRes.content) ? oncesRes.content : []
     const loadedTags = Array.isArray(tagsRes.content) ? tagsRes.content : ['高优', '学习', '生活', '健康']
     const loadedLogs = Array.isArray(timeRes.content) ? timeRes.content : []
     const loadedGroups = Array.isArray(groupsRes.content) ? groupsRes.content : []
+    const loadedUiSettings = normalizeUiSettings(uiSettingsRes.content)
 
-    setHabits(loadedHabits)
+    setHabits(normalizedHabits)
     setOnces(loadedOnces)
     setAllTags(loadedTags)
     setTimeLogs(loadedLogs)
     setGroups(loadedGroups)
+    setUiSettings(loadedUiSettings)
 
-    syncMetaRef.current.shas = { habits: habitsRes.sha, onces: oncesRes.sha, tags: tagsRes.sha, timeLogs: timeRes.sha, groups: groupsRes.sha }
+    syncMetaRef.current.shas = { habits: habitsRes.sha, onces: oncesRes.sha, tags: tagsRes.sha, timeLogs: timeRes.sha, groups: groupsRes.sha, uiSettings: uiSettingsRes.sha }
     syncMetaRef.current.snapshots = {
       habits: JSON.stringify(loadedHabits),
       onces: JSON.stringify(loadedOnces),
       tags: JSON.stringify(loadedTags),
       timeLogs: JSON.stringify(loadedLogs),
-      groups: JSON.stringify(loadedGroups)
+      groups: JSON.stringify(loadedGroups),
+      uiSettings: JSON.stringify(uiSettingsRes.content || {})
     }
 
     setSyncStatus('success')
@@ -80,20 +89,25 @@ export function DataProvider({ children }) {
     setSyncStatus('saving')
     
     const { shas, snapshots } = syncMetaRef.current
+    const normalizedResult = normalizeHabitsForBeijingDay(habits, { todayKey: getBeijingDateKey() })
+    const habitsToSync = normalizedResult.habits
+    if (normalizedResult.changed) setHabits(habitsToSync)
     const currentStrs = { 
-      habits: JSON.stringify(habits), 
+      habits: JSON.stringify(habitsToSync), 
       onces: JSON.stringify(onces), 
       tags: JSON.stringify(allTags),
       timeLogs: JSON.stringify(timeLogs),
-      groups: JSON.stringify(groups)
+      groups: JSON.stringify(groups),
+      uiSettings: JSON.stringify(uiSettings)
     }
     const uploadTasks = []
 
-    if (currentStrs.habits !== snapshots.habits) uploadTasks.push(saveFile('habits.json', habits, shas.habits).then(sha => ({ type: 'habits', sha })))
+    if (currentStrs.habits !== snapshots.habits) uploadTasks.push(saveFile('habits.json', habitsToSync, shas.habits).then(sha => ({ type: 'habits', sha })))
     if (currentStrs.onces !== snapshots.onces) uploadTasks.push(saveFile('onces.json', onces, shas.onces).then(sha => ({ type: 'onces', sha })))
     if (currentStrs.tags !== snapshots.tags) uploadTasks.push(saveFile('tags.json', allTags, shas.tags).then(sha => ({ type: 'tags', sha })))
     if (currentStrs.timeLogs !== snapshots.timeLogs) uploadTasks.push(saveFile('timeLogs.json', timeLogs, shas.timeLogs).then(sha => ({ type: 'timeLogs', sha })))
     if (currentStrs.groups !== snapshots.groups) uploadTasks.push(saveFile('groups.json', groups, shas.groups).then(sha => ({ type: 'groups', sha })))
+    if (currentStrs.uiSettings !== snapshots.uiSettings) uploadTasks.push(saveFile('uiSettings.json', uiSettings, shas.uiSettings).then(sha => ({ type: 'uiSettings', sha })))
 
     if (uploadTasks.length === 0) { setSyncStatus('success'); return; }
 
@@ -113,13 +127,14 @@ export function DataProvider({ children }) {
     if (!isInitialLoaded || syncMode !== 'auto' || syncStatus === 'no-config') return
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
     timeoutRef.current = setTimeout(() => { performSync() }, 2000)
-  }, [habits, onces, allTags, timeLogs, groups, isInitialLoaded, syncMode, syncStatus])
+  }, [habits, onces, allTags, timeLogs, groups, uiSettings, isInitialLoaded, syncMode, syncStatus])
 
   const value = {
     isInitialLoaded, syncStatus, syncMode, setSyncMode, performSync, loadData,
     habits, setHabits, onces, setOnces, allTags, setAllTags,
     timeLogs, setTimeLogs,
-    groups, setGroups // 🚀 新增抛出任务组
+    groups, setGroups,
+    uiSettings, setUiSettings
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
