@@ -238,14 +238,14 @@ export default function App() {
 
       <div className="relative flex min-w-0 flex-1 flex-col">
         {currentRoute.path !== 'settings' && (
-          <header className="z-[40] flex shrink-0 items-center justify-between bg-white px-5 pb-4 pt-10 shadow-sm lg:hidden">
-            <div className="flex items-center gap-4">
+          <header className="z-[40] flex shrink-0 items-center justify-between gap-3 bg-white px-4 pb-4 pt-10 shadow-sm sm:px-5 lg:hidden">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
               <button onClick={() => setIsDrawerOpen(true)} className="-ml-2 rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100">
                 <Menu size={24} />
               </button>
-              <h1 className="text-xl font-bold text-slate-800">{getCurrentTitle()}</h1>
+              <h1 className="min-w-0 truncate text-xl font-bold text-slate-800">{getCurrentTitle()}</h1>
             </div>
-            {renderSyncControl()}
+            <div className="shrink-0">{renderSyncControl()}</div>
           </header>
         )}
 
@@ -269,13 +269,13 @@ export default function App() {
       </div>
 
       {showFab && (
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingItem(null); setIsAddModalOpen(true) }} className="absolute bottom-24 right-6 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 lg:bottom-8 lg:right-8">
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setEditingItem(null); setIsAddModalOpen(true) }} className="absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom))] right-5 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/30 sm:right-6 lg:bottom-8 lg:right-8">
           <Plus size={28} />
         </motion.button>
       )}
 
       {['today', 'stats', 'diary'].includes(currentRoute.path) && (
-        <nav className="absolute bottom-0 left-0 right-0 z-[50] mx-auto flex w-full max-w-md items-center justify-between gap-2 border-t border-slate-200 bg-white px-6 py-2 pb-6 lg:hidden">
+        <nav className="absolute bottom-0 left-0 right-0 z-[50] mx-auto flex w-full max-w-md items-center justify-between gap-2 border-t border-slate-200 bg-white px-6 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:hidden">
           {primaryTabs.map(tab => {
             const Icon = tab.icon
             const isActive = currentRoute.path === tab.id

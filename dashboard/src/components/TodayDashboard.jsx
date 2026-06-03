@@ -189,15 +189,15 @@ export default function TodayDashboard({ onLog }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 lg:max-w-2xl">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:max-w-2xl">
             {[
               ['今日完成', `${progress}%`],
               ['记录时长', formatDuration(todaySeconds)],
               ['逾期', overdueTodos.length],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl bg-white/40 p-3 backdrop-blur">
+              <div key={label} className="min-w-0 rounded-2xl bg-white/40 p-2.5 backdrop-blur sm:p-3">
                 <div className={`text-[10px] font-bold ${template.mutedClass}`}>{label}</div>
-                <div className={`mt-1 text-2xl font-black ${template.textClass}`}>{value}</div>
+                <div className={`mt-1 truncate text-lg font-black sm:text-2xl ${template.textClass}`}>{value}</div>
               </div>
             ))}
           </div>
@@ -311,12 +311,12 @@ export default function TodayDashboard({ onLog }) {
       ) : (
         <div className="space-y-2">
           {todayLogs.slice().reverse().slice(0, 6).map(log => (
-            <div key={log.id} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-              <div className="min-w-0">
+            <div key={log.id} className="flex flex-col gap-2 rounded-2xl bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-black text-slate-700">{log.taskTitle}</div>
                 <div className="text-[10px] font-bold text-slate-400">{log.mode || 'manual'}</div>
               </div>
-              <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-black text-slate-500 sm:justify-end">
                 {getSeconds(log) > 0 && <span><Timer size={12} className="inline" /> {formatDuration(getSeconds(log))}</span>}
                 {Number(log.progressAdded || 0) > 0 && <span><Flame size={12} className="inline text-emerald-500" /> +{log.progressAdded}{log.unit || ''}</span>}
               </div>

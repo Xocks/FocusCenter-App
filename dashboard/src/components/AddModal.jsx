@@ -155,8 +155,8 @@ export default function AddModal({ onClose, initialData = null }) {
   const isFormValid = title.trim() !== '' && groupIds.length > 0
 
   return (
-    <div className="absolute inset-0 z-[90] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
-      <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="absolute inset-0 z-[90] flex items-center justify-center bg-slate-900/40 p-3 backdrop-blur-sm sm:p-6">
+      <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:max-h-[90vh]">
         
         <div className="flex bg-slate-100 p-2 relative shrink-0">
           <button disabled={isEditing} onClick={() => setTab('todo')} className={`flex-1 py-3 text-sm font-bold rounded-2xl transition-all ${tab === 'todo' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'} disabled:opacity-50`}>单次待办</button>
@@ -164,7 +164,7 @@ export default function AddModal({ onClose, initialData = null }) {
           {isEditing && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-800/10 font-black text-2xl tracking-widest">EDIT MODE</div>}
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto space-y-8">
+        <div className="flex-1 space-y-8 overflow-y-auto p-4 sm:p-6">
           <input 
             type="text" autoFocus placeholder={tab === 'habit' ? "例如: 每天喝水..." : "例如: 下午3点开会..."}
             value={title} onChange={(e) => setTitle(e.target.value)}
@@ -241,7 +241,7 @@ export default function AddModal({ onClose, initialData = null }) {
             {tab === 'todo' && (
               <>
                 <label className="text-xs font-bold text-slate-400 flex items-center gap-2 mt-4"><Calendar size={14}/> 时间段</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-slate-400">开始</span>
                     <input type="datetime-local" value={startAt} onChange={e => setStartAt(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-slate-600" />
@@ -291,7 +291,7 @@ export default function AddModal({ onClose, initialData = null }) {
               <Palette size={14} /> 外观
             </summary>
             <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1">
                   <span className="text-[11px] font-bold text-slate-400">图标名</span>
                   <input

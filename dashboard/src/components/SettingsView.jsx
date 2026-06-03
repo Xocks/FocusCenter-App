@@ -218,7 +218,7 @@ export default function SettingsView({ onBack }) {
           <motion.div key="main" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 flex flex-col">
             {renderHeader('系统设置', onBack)}
 
-            <div className="mx-auto w-full max-w-4xl flex-1 space-y-6 overflow-y-auto p-6">
+            <div className="mx-auto w-full max-w-4xl flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
               <div className="rounded-3xl bg-slate-800 p-5 text-white shadow-xl">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2"><RefreshCcw size={18} className="text-blue-400" /><span className="text-sm font-bold">配置跨端迁移</span></div>
@@ -256,7 +256,7 @@ export default function SettingsView({ onBack }) {
         {subView === 'appearance' && (
           <motion.div key="appearance" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
             {renderHeader('外观与布局')}
-            <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 overflow-y-auto p-6 pb-20">
+            <div className="mx-auto w-full max-w-5xl flex-1 space-y-6 overflow-y-auto p-4 pb-20 sm:p-6">
               <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
                 <h2 className="mb-4 text-sm font-black text-slate-700">全局外观</h2>
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -367,8 +367,8 @@ export default function SettingsView({ onBack }) {
         {subView === 'github' && (
           <motion.div key="github" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
             {renderHeader('Supabase 数据源')}
-            <div className="mx-auto w-full max-w-xl flex-1 overflow-y-auto p-6">
-              <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="mx-auto w-full max-w-xl flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
                 <div className="rounded-2xl bg-blue-50 p-4 text-sm font-bold leading-6 text-blue-700">
                   业务数据现在从 Supabase 读取和保存。请在 dashboard/.env.local 配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY，修改后重启开发服务器。
                 </div>
@@ -388,8 +388,8 @@ export default function SettingsView({ onBack }) {
         {subView === 'obsidian' && (
           <motion.div key="obsidian" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
             {renderHeader('知识库配置')}
-            <div className="mx-auto w-full max-w-xl flex-1 overflow-y-auto p-6">
-              <div className="space-y-5 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+            <div className="mx-auto w-full max-w-xl flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-5 rounded-3xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
                 <div>
                   <label className="mb-1 block text-xs font-bold text-slate-500">GitHub 用户名</label>
                   <input type="text" value={obsOwner} onChange={e => setObsOwner(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
@@ -411,7 +411,7 @@ export default function SettingsView({ onBack }) {
         {subView === 'changelog' && (
           <motion.div key="changelog" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
             {renderHeader('更新日志')}
-            <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 overflow-y-auto p-6 pb-20">
+            <div className="mx-auto w-full max-w-3xl flex-1 space-y-6 overflow-y-auto p-4 pb-20 sm:p-6">
               {isLoadingLog ? (
                 <div className="flex h-40 flex-col items-center justify-center gap-2 text-slate-400">
                   <Loader2 size={32} className="animate-spin text-blue-500" />
@@ -441,7 +441,7 @@ export default function SettingsView({ onBack }) {
         {subView === 'tags' && (
           <motion.div key="tags" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
             {renderHeader('全局标签管理')}
-            <div className="mx-auto w-full max-w-2xl flex-1 space-y-3 overflow-y-auto p-6">
+            <div className="mx-auto w-full max-w-2xl flex-1 space-y-3 overflow-y-auto p-4 sm:p-6">
               {allTags.map(tag => (
                 <div key={tag} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                   {editingTag === tag ? (
@@ -470,7 +470,7 @@ export default function SettingsView({ onBack }) {
               <div className="flex items-center gap-4"><button onClick={() => setSubView('main')} className="-ml-2 rounded-lg p-2 text-slate-600 hover:bg-slate-100"><ArrowLeft size={24} /></button><h1 className="text-xl font-bold text-slate-800">回收站</h1></div>
               {deletedItems.length > 0 && <button onClick={() => { if (window.confirm('彻底清空？')) { setHabits(habits.filter(h => !h.isDeleted)); setOnces(onces.filter(o => !o.isDeleted)) } }} className="rounded-lg bg-red-50 px-3 py-1.5 text-sm font-bold text-red-500">清空</button>}
             </header>
-            <div className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto p-6">
+            <div className="mx-auto w-full max-w-3xl flex-1 space-y-2 overflow-y-auto p-4 sm:p-6">
               {deletedItems.map(item => (
                 <div key={item.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4">
                   <div><div className="font-bold text-slate-500 line-through">{item.title}</div><div className="mt-1 text-[10px] text-slate-400">删除于 {new Date(item.deletedAt).toLocaleString()}</div></div>

@@ -57,8 +57,8 @@ export default function LogModal({ task, onClose }) {
   }
 
   return (
-    <div className="absolute inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
-      <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden flex flex-col">
+    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-3 backdrop-blur-sm sm:p-6">
+      <motion.div initial={{ y: 50, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.95 }} className="flex max-h-[calc(100vh-1.5rem)] w-full max-w-sm flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
         
         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
           <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export default function LogModal({ task, onClose }) {
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 bg-slate-200/50 p-1.5 rounded-full transition-colors"><X size={18} /></button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
           <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
             <span className="text-xs font-bold text-blue-400 uppercase tracking-wider block mb-1">正在记录 · 北京时间 {todayKey}</span>
             <span className="font-black text-slate-700 text-lg leading-tight">{currentTask.title}</span>

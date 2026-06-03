@@ -173,8 +173,8 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
         {filterGroupId === null && <div className="absolute top-0 right-0 bg-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">今日执行中</div>}
         {filterGroupId === 'inbox' && <div className="absolute top-0 right-0 bg-slate-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl">未分类清单</div>}
         
-        <div className="flex justify-between items-end">
-          <div>
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="text-xl font-black text-slate-800">
               {filterGroupId === 'all' ? '所有任务' : filterGroupId === null ? '今日待办' : filterGroupId === 'inbox' ? '收集箱' : '组内总库'}
             </h2>
@@ -188,7 +188,7 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
               )}
             </div>
           </div>
-          <span className="text-3xl font-black text-blue-600">{overallProgress}%</span>
+            <span className="shrink-0 text-3xl font-black text-blue-600">{overallProgress}%</span>
         </div>
         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
           <motion.div initial={{ width: 0 }} animate={{ width: `${overallProgress}%` }} className="h-full bg-blue-500 rounded-full" />
@@ -210,8 +210,8 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
               return (
                 <div key={habit.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-100 transition-colors">
                   <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 z-0 ${isCompleted ? 'bg-emerald-50' : 'bg-slate-50'}`} style={{ width: `${Math.min((current / target) * 100, 100)}%` }} />
-                  <div className="relative z-10 flex justify-between items-center gap-4">
-                    <div className="flex-1">
+                  <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex-1">
                       <span className={`font-bold block ${isCompleted ? 'text-emerald-700' : 'text-slate-800'}`}>{habit.title}</span>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
                         <span className="text-xs font-bold text-slate-400 bg-white/50 px-1 rounded">进度: <span className={isCompleted ? 'text-emerald-600' : 'text-blue-500'}>{current}</span> / {target} {habit.unit}</span>
@@ -222,8 +222,8 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex opacity-50 hover:opacity-100 gap-1 mr-1">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <div className="mr-1 flex gap-1 opacity-100 sm:opacity-50 sm:hover:opacity-100">
                         <button onClick={() => onEdit(habit)} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg"><Pencil size={16}/></button>
                         <button onClick={() => softDeleteHabit(habit.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={16}/></button>
                       </div>
@@ -262,9 +262,10 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
                 const isRunning = !!runningTimers[todo.id]
 
                 return (
-                  <motion.div key={todo.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`group p-4 rounded-2xl border flex items-center gap-4 transition-all hover:border-blue-100 ${todo.completed ? 'bg-slate-50 border-transparent shadow-none' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <button onClick={() => toggleTodo(todo.id)} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors shrink-0 ${todo.completed ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 text-transparent hover:border-blue-500'}`}><Check size={16} strokeWidth={3} /></button>
-                    <div className="flex-1">
+                  <motion.div key={todo.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} className={`group flex flex-col gap-3 rounded-2xl border p-4 transition-all hover:border-blue-100 sm:flex-row sm:items-center sm:gap-4 ${todo.completed ? 'bg-slate-50 border-transparent shadow-none' : 'bg-white border-slate-100 shadow-sm'}`}>
+                    <div className="flex min-w-0 items-start gap-3 sm:flex-1">
+                      <button onClick={() => toggleTodo(todo.id)} className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${todo.completed ? 'bg-blue-500 border-blue-500 text-white' : 'border-slate-300 text-transparent hover:border-blue-500'}`}><Check size={16} strokeWidth={3} /></button>
+                      <div className="min-w-0 flex-1">
                       <h3 className={`font-bold transition-all ${todo.completed ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{todo.title}</h3>
                       <div className="flex items-center gap-2 mt-1 opacity-80 flex-wrap">
                         {isRunning ? (
@@ -277,10 +278,11 @@ export default function TodoView({ onEdit, onLog, filterGroupId }) {
                         {formatTaskSchedule(todo, todayStr) && <span className="text-xs text-slate-400 font-medium">{formatTaskSchedule(todo, todayStr)}</span>}
                         {todo.tags?.map(tag => <span key={tag} className="text-[10px] font-bold text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded">{tag}</span>)}
                       </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex opacity-50 hover:opacity-100 gap-1 mr-1">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      <div className="mr-1 flex gap-1 opacity-100 sm:opacity-50 sm:hover:opacity-100">
                         <button onClick={() => onEdit(todo)} className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg"><Pencil size={16}/></button>
                         <button onClick={() => softDeleteTodo(todo.id)} className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={16}/></button>
                       </div>

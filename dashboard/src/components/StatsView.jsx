@@ -56,16 +56,16 @@ const RecordItem = ({ record, onUndo }) => {
     <motion.div 
       layout 
       initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-      className="bg-white p-4 rounded-2xl flex justify-between items-center border border-slate-100 shadow-sm group"
+      className="group flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
     >
-      <div className="flex items-center gap-3 flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
         <CheckCircle2 size={18} className="text-blue-500 shrink-0" />
         <span className="text-sm font-bold text-slate-700 truncate">{record.taskTitle}</span>
       </div>
       
-      <div className="flex items-center gap-4 shrink-0 pl-4">
-        <div className="text-right flex flex-col items-end gap-0.5">
-          <div className="flex gap-2">
+      <div className="flex shrink-0 items-center justify-between gap-3 sm:gap-4 sm:pl-4">
+        <div className="flex flex-col items-start gap-0.5 text-left sm:items-end sm:text-right">
+          <div className="flex flex-wrap gap-2 sm:justify-end">
             {timeText !== "" && (
               <span className="text-sm font-black text-slate-800 flex items-center gap-1">
                 <Clock size={12} className="text-slate-400" /> {timeText}
@@ -213,7 +213,7 @@ export default function StatsView() {
   }
 
   return (
-    <div className="p-6 pb-24 space-y-6">
+    <div className="space-y-6 p-4 pb-24 sm:p-6">
       
       {/* 🚀 顶部控制器 */}
       <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 space-y-2">
