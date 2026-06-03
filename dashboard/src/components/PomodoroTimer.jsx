@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { X, Play, Pause, Square, Clock, Timer, Minimize2, Maximize2 } from 'lucide-react'
 import { useData } from '../contexts/DataContext'
+import { getBeijingDateKey, nowIso } from '../utils/date'
 
 export default function PomodoroTimer({ timerState, setTimerState }) {
   const { habits, onces, timeLogs, setTimeLogs } = useData()
@@ -19,8 +20,8 @@ export default function PomodoroTimer({ timerState, setTimerState }) {
   const [selectedTask, setSelectedTask] = useState('')
 
   const activeTasks = [
-    ...habits.filter(h => !h.isDeleted).map(h => ({ id: h.id, title: `[习惯] ${h.title}` })),
-    ...onces.filter(o => !o.isDeleted && !o.completed).map(o => ({ id: o.id, title: `[待办] ${o.title}` }))
+    ...habits.filter(h => !h.isDeleted).map(h => ({ ...h, title: `[习惯] ${h.title}` })),
+    ...onces.filter(o => !o.isDeleted && !o.completed).map(o => ({ ...o, title: `[待办] ${o.title}` }))
   ]
 
   // 核心计时循环
@@ -58,13 +59,22 @@ export default function PomodoroTimer({ timerState, setTimerState }) {
     if (minutesSpent < 1) {
       alert("⚠️ 时间少于 1 分钟，已被过滤，不计入统计。")
     } else {
+      const selectedTaskObj = activeTasks.find(t => t.id === selectedTask)
+      const timestamp = nowIso()
       const newRecord = {
         id: Date.now().toString(),
         taskId: selectedTask || 'unassigned',
-        taskTitle: selectedTask ? activeTasks.find(t => t.id === selectedTask)?.title : '自由探索',
+        taskTitle: selectedTask ? selectedTaskObj?.title : '自由探索',
         mode: mode,
-        durationMinutes: minutesSpent,
-        completedAt: new Date().toISOString()
+        durationSeconds: finalSeconds,
+        progressAdded: 0,
+        unit: selectedTaskObj?.unit || '',
+        groupIds: selectedTaskObj?.groupIds || [],
+        tags: selectedTaskObj?.tags || [],
+        dateKey: getBeijingDateKey(),
+        completedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp
       }
       setTimeLogs([...timeLogs, newRecord])
       alert(`🎉 记录成功！已投入 ${minutesSpent} 分钟。`)

@@ -38,7 +38,7 @@ const mergeChangelog = (remoteEntries) => {
 }
 
 export default function SettingsView({ onBack }) {
-  const { loadData, habits, setHabits, onces, setOnces, allTags, setAllTags, groups, setGroups, uiSettings, setUiSettings } = useData()
+  const { habits, setHabits, onces, setOnces, allTags, setAllTags, groups, setGroups, uiSettings, setUiSettings } = useData()
   const [subView, setSubView] = useState('main')
   const [copyFeedback, setCopyFeedback] = useState(false)
   const [changelog, setChangelog] = useState(() => mergeChangelog([]))
@@ -81,7 +81,7 @@ export default function SettingsView({ onBack }) {
     if (subView === 'changelog') fetchRemoteChangelog()
   }, [subView, fetchRemoteChangelog])
 
-  const configKeys = ['github_token', 'github_owner', 'github_repo', 'obsidian_owner', 'obsidian_repo', 'obsidian_blacklist']
+  const configKeys = ['obsidian_owner', 'obsidian_repo', 'obsidian_blacklist']
   const handleExportConfig = () => {
     const config = {}
     configKeys.forEach(key => {
@@ -107,17 +107,6 @@ export default function SettingsView({ onBack }) {
     } catch {
       alert('导入失败，配置格式不正确')
     }
-  }
-
-  const [token, setToken] = useState(localStorage.getItem('github_token') || '')
-  const [uName, setUName] = useState(localStorage.getItem('github_owner') || '')
-  const [rName, setRName] = useState(localStorage.getItem('github_repo') || '')
-  const handleSaveGithub = () => {
-    localStorage.setItem('github_token', token.trim())
-    localStorage.setItem('github_owner', uName.trim())
-    localStorage.setItem('github_repo', rName.trim())
-    loadData()
-    setSubView('main')
   }
 
   const [obsOwner, setObsOwner] = useState(localStorage.getItem('obsidian_owner') || '')
@@ -175,7 +164,7 @@ export default function SettingsView({ onBack }) {
     { id: 'appearance', label: '外观与布局', icon: Palette },
     { id: 'tags', label: '标签管理', icon: TagIcon, count: allTags.length },
     { id: 'obsidian', label: 'Obsidian 知识库配置', icon: Book },
-    { id: 'github', label: '数据同步配置', icon: Database },
+    { id: 'github', label: 'Supabase 数据源', icon: Database },
     { id: 'recycle', label: '回收站', icon: ArchiveRestore, count: deletedItems.length },
     { id: 'changelog', label: '更新日志', icon: History },
   ]
@@ -377,22 +366,20 @@ export default function SettingsView({ onBack }) {
 
         {subView === 'github' && (
           <motion.div key="github" variants={pageVariants} initial="initial" animate="animate" exit="exit" className="absolute inset-0 z-10 flex flex-col bg-slate-50">
-            {renderHeader('数据同步配置')}
+            {renderHeader('Supabase 数据源')}
             <div className="mx-auto w-full max-w-xl flex-1 overflow-y-auto p-6">
               <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-                <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-500">GitHub Personal Token</label>
-                  <input type="password" value={token} onChange={e => setToken(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <div className="rounded-2xl bg-blue-50 p-4 text-sm font-bold leading-6 text-blue-700">
+                  业务数据现在从 Supabase 读取和保存。请在 dashboard/.env.local 配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY，修改后重启开发服务器。
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-500">GitHub 用户名</label>
-                  <input type="text" value={uName} onChange={e => setUName(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="mb-1 block text-xs font-bold text-slate-500">Project URL</label>
+                  <input type="text" readOnly value="VITE_SUPABASE_URL" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-500 outline-none" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-slate-500">任务仓库名称</label>
-                  <input type="text" value={rName} onChange={e => setRName(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="mb-1 block text-xs font-bold text-slate-500">Anon key</label>
+                  <input type="text" readOnly value="VITE_SUPABASE_ANON_KEY" className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-500 outline-none" />
                 </div>
-                <button onClick={handleSaveGithub} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 py-3 font-bold text-white"><Save size={18} /> 保存并同步</button>
               </div>
             </div>
           </motion.div>
